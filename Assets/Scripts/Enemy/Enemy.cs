@@ -104,7 +104,8 @@ public class Enemy : MonoBehaviour, IDamageable
         baseTint = data.tintColor;
         if (body != null)
         {
-            body.sprite = data.sprite;
+            // 数据里没配精灵时，保留预制体/场景上原本的图，不要清空
+            if (data.sprite != null) body.sprite = data.sprite;
             body.color = baseTint;
         }
 
