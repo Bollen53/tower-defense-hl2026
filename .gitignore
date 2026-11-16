@@ -1,0 +1,50 @@
+# Unity 工程 .gitignore
+# 复制到工程根目录（和 Assets/ 同级）
+
+# ---- Unity 自动生成 ----
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# ---- 编译产物 ----
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.vs/
+.idea/
+.vscode/
+
+# ---- 系统垃圾 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 打包产物 ----
+*.apk
+*.aab
+*.unitypackage
+*.app
+ExportedObj/
+crashlytics-build.properties
+
+# ---- 大文件（如果用 Git LFS，可去掉这几行并改为 lfs track）----
+# *.psd
+# *.wav
+# *.mp3
+# *.fbx
