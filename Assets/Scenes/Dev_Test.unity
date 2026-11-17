@@ -372,7 +372,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemy: {fileID: 1833246428}
   path: {fileID: 0}
-  testSpeed: 10
+  testSpeed: 2.5
 --- !u!4 &672702167
 Transform:
   m_ObjectHideFlags: 0
