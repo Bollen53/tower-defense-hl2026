@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 6435100101906212792}
   - component: {fileID: 2321011136824557996}
   - component: {fileID: 4885024729064859965}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: BuildTile
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d685817be2a9b44582eab75a4191d02, type: 3}
   m_Name: Waves_Level01
   m_EditorClassIdentifier: 
-  firstPrepTime: 2
+  firstPrepTime: 20
   waves:
   - prepTime: 10
+    sequentialGroups: 0
     groups:
     - enemy: {fileID: 11400000, guid: 4b5fb7d5e59f50a4eae41b1de66cc638, type: 2}
       count: 8
@@ -23,6 +24,7 @@ MonoBehaviour:
       pathIndex: 0
     note: 
   - prepTime: 10
+    sequentialGroups: 1
     groups:
     - enemy: {fileID: 11400000, guid: 4b5fb7d5e59f50a4eae41b1de66cc638, type: 2}
       count: 6
@@ -36,6 +38,7 @@ MonoBehaviour:
       pathIndex: 0
     note: 
   - prepTime: 10
+    sequentialGroups: 0
     groups:
     - enemy: {fileID: 11400000, guid: 4b5fb7d5e59f50a4eae41b1de66cc638, type: 2}
       count: 10
@@ -49,6 +52,7 @@ MonoBehaviour:
       pathIndex: 0
     note: 
   - prepTime: 10
+    sequentialGroups: 0
     groups:
     - enemy: {fileID: 11400000, guid: 637b1b5be7f13224b81c05620ebb5038, type: 2}
       count: 8
@@ -67,6 +71,7 @@ MonoBehaviour:
       pathIndex: 0
     note: 
   - prepTime: 0
+    sequentialGroups: 0
     groups:
     - enemy: {fileID: 11400000, guid: 4b5fb7d5e59f50a4eae41b1de66cc638, type: 2}
       count: 12
