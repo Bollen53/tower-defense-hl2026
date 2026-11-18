@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 913f6f0ef80e14245a252c1de4962b7d, type: 3}
+  m_Name: Enemy_Healer
+  m_EditorClassIdentifier: 
+  displayName: "\u6CBB\u7597\u8005"
+  sprite: {fileID: 21300000, guid: 9debc36e00d6c7043b74a9a5f33022bd, type: 3}
+  tintColor: {r: 1, g: 1, b: 1, a: 1}
+  scale: 1
+  maxHealth: 100
+  moveSpeed: 1.2
+  armor: 2
+  reward: 14
+  damageToBase: 1
+  special: 2
+  specialInterval: 3
+  specialValue: 0.07
+  specialRadius: 2.5
+  deathSfx: {fileID: 0}

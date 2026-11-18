@@ -5,20 +5,29 @@ using UnityEngine;
 /// <summary>
 /// 波次调度：开局倒计时 → 一波波出怪 → 场上清空 → 布防倒计时 → 下一波 → 全清后判胜。
 ///
-/// 用协程写流程，比一堆状态机和计时器变量好读得多，也方便加「提前召唤下一波」这类功能。
+/// 支持多个出怪口：paths 里放几条路径，就有几个出生点。
+/// 每个 SpawnGroup 用 pathIndex 指定从哪条路出（0 = paths[0]）。
+///
+/// 用协程写流程，比一堆状态机和计时器变量好读得多。
 /// </summary>
 public class WaveManager : MonoBehaviour
 {
     [Header("配置")]
     [SerializeField] private LevelWaves levelWaves;
-    [SerializeField] private WaypointPath path;
+
+    [Tooltip("出怪口路径：1 个就是单出口；2 个就是双出口。顺序对应 SpawnGroup.pathIndex")]
+    [SerializeField] private WaypointPath[] paths;
+
     [SerializeField] private GameObject enemyPrefab;
+
     [Tooltip("敌人父物体，留空则挂在场景根下")]
     [SerializeField] private Transform enemyParent;
+
     [Tooltip("开局预热多少个敌人到对象池")]
     [SerializeField] private int prewarmCount = 24;
 
     public int TotalWaves => levelWaves != null ? levelWaves.WaveCount : 0;
+    public int PathCount => pathPoints == null ? 0 : pathPoints.Length;
     public int CurrentWave { get; private set; }
     public float Countdown { get; private set; }
     public bool Finished { get; private set; }
@@ -29,11 +38,11 @@ public class WaveManager : MonoBehaviour
     public event Action<float> CountdownChanged;
     public event Action LevelCleared;
 
-    private Vector2[] pathPoints;
+    // 每条路径展开后的点数组
+    private Vector2[][] pathPoints;
 
     private void Start()
     {
-        // 换场景时静态列表可能残留上一关的引用
         EnemyRegistry.Clear();
 
         if (levelWaves == null)
@@ -50,12 +59,32 @@ public class WaveManager : MonoBehaviour
             return;
         }
 
-        pathPoints = path != null ? path.GetPoints() : new Vector2[0];
-        if (pathPoints.Length < 2)
+        if (paths == null || paths.Length == 0)
         {
-            Debug.LogError("[WaveManager] WaypointPath 至少要有 2 个有效路径点", this);
+            Debug.LogError("[WaveManager] paths 是空的，至少要有 1 条路径", this);
             enabled = false;
             return;
+        }
+
+        pathPoints = new Vector2[paths.Length][];
+        for (int i = 0; i < paths.Length; i++)
+        {
+            if (paths[i] == null)
+            {
+                Debug.LogError($"[WaveManager] paths[{i}] 是空的", this);
+                enabled = false;
+                return;
+            }
+
+            var pts = paths[i].GetPoints();
+            if (pts.Length < 2)
+            {
+                Debug.LogError($"[WaveManager] paths[{i}] 的有效路径点少于 2 个", this);
+                enabled = false;
+                return;
+            }
+
+            pathPoints[i] = pts;
         }
 
         if (PoolManager.Instance == null)
@@ -74,8 +103,9 @@ public class WaveManager : MonoBehaviour
 
         PoolManager.Instance.Prewarm(enemyPrefab, prewarmCount);
 
-        // 进关卡切战斗 BGM（主菜单放的是另一首）
         if (AudioManager.Instance != null) AudioManager.Instance.PlayBattleMusic();
+
+        Debug.Log($"[WaveManager] 启动：{paths.Length} 个出怪口，{TotalWaves} 波");
 
         StartCoroutine(RunLevel());
     }
@@ -99,7 +129,6 @@ public class WaveManager : MonoBehaviour
 
             yield return SpawnWave(levelWaves.waves[i]);
 
-            // 等这一波全部被打死或跑到终点
             while (EnemyRegistry.Count > 0)
             {
                 if (IsGameOver()) yield break;
@@ -125,7 +154,7 @@ public class WaveManager : MonoBehaviour
         {
             if (IsGameOver()) yield break;
 
-            t -= Time.deltaTime;        // 暂停时 Time.deltaTime 为 0，倒计时自动冻结
+            t -= Time.deltaTime;
             Countdown = Mathf.Max(0f, t);
 
             int shown = Mathf.CeilToInt(Countdown);
@@ -146,6 +175,23 @@ public class WaveManager : MonoBehaviour
     {
         if (wave == null || wave.groups == null) yield break;
 
+        // ── 顺序模式：一组全部出完，才开始下一组 ──
+        if (wave.sequentialGroups)
+        {
+            for (int i = 0; i < wave.groups.Count; i++)
+            {
+                if (IsGameOver()) yield break;
+
+                var g = wave.groups[i];
+                if (g == null || g.enemy == null || g.count <= 0) continue;
+
+                yield return SpawnGroup(g, null);
+            }
+
+            yield break;
+        }
+
+        // ── 并发模式（默认）：所有组同时开始，用各自的 startDelay 错开 ──
         int running = 0;
 
         for (int i = 0; i < wave.groups.Count; i++)
@@ -166,8 +212,7 @@ public class WaveManager : MonoBehaviour
 
     private IEnumerator SpawnGroup(SpawnGroup group, Action onDone)
     {
-        // 用 try/finally 保证计数器一定被减掉：
-        // 一旦这里抛异常而没执行 onDone，SpawnWave 的 running 永不归零，整关会静默卡死。
+        // try/finally：出了异常也一定把计数器减掉，否则整关会静默卡死
         try
         {
             if (group.startDelay > 0f) yield return new WaitForSeconds(group.startDelay);
@@ -176,7 +221,7 @@ public class WaveManager : MonoBehaviour
             {
                 if (IsGameOver()) break;
 
-                SpawnEnemy(group.enemy);
+                SpawnEnemy(group.enemy, group.pathIndex);
 
                 if (group.interval > 0f) yield return new WaitForSeconds(group.interval);
             }
@@ -187,11 +232,19 @@ public class WaveManager : MonoBehaviour
         }
     }
 
-    private void SpawnEnemy(EnemyData data)
+    private void SpawnEnemy(EnemyData data, int pathIndex)
     {
         if (PoolManager.Instance == null) return;
 
-        var go = PoolManager.Instance.Spawn(enemyPrefab, pathPoints[0], Quaternion.identity);
+        int index = Mathf.Clamp(pathIndex, 0, pathPoints.Length - 1);
+        if (index != pathIndex)
+        {
+            Debug.LogWarning($"[WaveManager] pathIndex={pathIndex} 超出范围（共 {pathPoints.Length} 条路），已用 {index}");
+        }
+
+        var pointList = pathPoints[index];
+
+        var go = PoolManager.Instance.Spawn(enemyPrefab, pointList[0], Quaternion.identity);
         if (go == null) return;
 
         if (enemyParent != null) go.transform.SetParent(enemyParent, true);
@@ -202,10 +255,10 @@ public class WaveManager : MonoBehaviour
         if (enemy == null || health == null)
         {
             Debug.LogError("[WaveManager] 敌人预制体缺少 Enemy / EnemyHealth 脚本：" + enemyPrefab.name);
-            PoolManager.Instance.Despawn(go);   // 别把一个空壳留在场上
+            PoolManager.Instance.Despawn(go);
             return;
         }
 
-        enemy.Setup(data, pathPoints, health);
+        enemy.Setup(data, pointList, health);
     }
 }
